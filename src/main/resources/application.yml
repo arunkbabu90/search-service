@@ -1,0 +1,16 @@
+server:
+  port: 7072
+
+spring:
+  application:
+    name: search-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/spring_search_timesheet
+    username: postgres
+    password: root
+    initialization-mode: always
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
