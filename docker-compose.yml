@@ -2,6 +2,8 @@ networks:
   default:
     name: elastic
     external: false
+  mynet:
+    driver: bridge
 
 services:
   postgres:
@@ -9,10 +11,12 @@ services:
     container_name: postgres
     env_file:
       - .env
+    networks:
+      - mynet
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   pgadmin:
     image: dpage/pgadmin4:latest
