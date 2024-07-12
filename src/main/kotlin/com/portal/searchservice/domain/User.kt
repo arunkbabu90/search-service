@@ -8,11 +8,14 @@ import java.io.Serializable
 data class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    var id: Long = -1,
 
     @Column(unique = true, nullable = false)
-    val username: String,
+    var username: String,
 
     @Column(name = "full_name", nullable = false)
-    val fullname: String
+    var fullname: String,
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    var timesheet: List<Timesheet>? = null
 ) : Serializable

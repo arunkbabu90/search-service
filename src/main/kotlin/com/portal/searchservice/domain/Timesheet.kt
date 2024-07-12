@@ -9,27 +9,27 @@ import java.time.Instant
 data class Timesheet(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    var id: Long = 0,
 
     @Column(nullable = false)
-    val project: String? = null,
+    var project: String? = null,
 
     @Column(nullable = false)
-    val task: String? = null,
+    var task: String? = null,
 
     @Column(nullable = false)
-    val hours: Int = 8,
+    var hours: Int = 0,
 
     @Column(nullable = false)
-    val description: String? = null,
+    var description: String? = null,
 
     @Column(name = "timesheet_date", nullable = false)
-    val timesheetDate: Instant,
+    var timesheetDate: Instant,
 
     @Column(name = "updated_at")
-    val updatedAt: Instant = Instant.now(),
+    var updatedAt: Instant? = Instant.now(),
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    val user: User
+    var user: User?
 ) : Serializable

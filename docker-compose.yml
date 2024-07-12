@@ -56,7 +56,8 @@ services:
       - .env
     environment:
       - NODE_NAME="logstash"
-      - xpack.monitoring.enabled=false
+      - xpack.monitoring.enabled=true
+      - xpack.monitoring.collection.enabled=true
       - ELASTIC_USER=${ELASTIC_USERNAME}
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - ELASTIC_HOSTS=http://elasticsearch:9200
