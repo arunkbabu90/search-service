@@ -60,7 +60,8 @@ class TimesheetServiceImpl(
 }
 
 interface TimesheetService<T, out TD> {
-    fun findTimesheetsBetween(username: String, startDate: Instant, endDate: Instant, from: Int, size: Int): List<TD> = listOf()
+    fun findTimesheetsWithConfig(searchScript: String) = listOf<TD>()
+    fun findTimesheetsBetween(username: String, startDate: Instant, endDate: Instant, from: Int, size: Int) = listOf<TD>()
     fun getTimesheets(username: String): List<T> = listOf()
     fun saveTimesheetEntry(username: String, timesheet: T): T
 }

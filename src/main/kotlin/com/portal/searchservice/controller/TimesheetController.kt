@@ -19,6 +19,15 @@ class TimesheetControllerImpl(
     private val timesheetDocumentMapper: TimesheetDocumentMapper
 ) : TimeSheetController {
 
+    @PostMapping
+    override fun getTimesheetsWithConfig(
+        @RequestBody elasticSearchScript: String
+    ): ResponseEntity<Any> {
+
+
+        return super.getTimesheetsWithConfig(elasticSearchScript)
+    }
+
     @GetMapping
     override fun getTimesheetsBetween(
         @RequestParam("u") username: String,
@@ -44,7 +53,7 @@ class TimesheetControllerImpl(
         return ResponseEntity(timesheetResponse, HttpStatus.OK)
     }
 
-    @PostMapping
+    @PostMapping("/add")
     override fun saveTimesheetEntry(
         @RequestParam("u") username: String,
         @RequestBody timesheetDto: TimesheetDto
@@ -59,8 +68,8 @@ class TimesheetControllerImpl(
 
 
 interface TimeSheetController {
+    fun getTimesheetsWithConfig(elasticSearchScript: String): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     fun getTimesheetsBetween(username: String, startDate: String, endDate: String, page: Int, size: Int): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     fun getTimesheets(username: String): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
-    fun saveTimesheetEntry(username: String, timesheetDto: TimesheetDto): ResponseEntity<Any> =
-        ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    fun saveTimesheetEntry(username: String, timesheetDto: TimesheetDto): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
 }
