@@ -14,3 +14,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password: accessEs

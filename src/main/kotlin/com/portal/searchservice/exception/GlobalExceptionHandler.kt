@@ -3,11 +3,10 @@ package com.portal.searchservice.exception
 import com.portal.searchservice.dto.ErrorResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
 
-@ControllerAdvice
+//@ControllerAdvice
 class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception::class)

@@ -1,6 +1,6 @@
 package com.portal.searchservice.mapper
 
-import com.portal.searchservice.domain.Timesheet
+import com.portal.searchservice.domain.TimesheetDocument
 import com.portal.searchservice.dto.TimesheetDto
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
@@ -8,17 +8,17 @@ import org.mapstruct.Mappings
 import org.mapstruct.factory.Mappers
 
 @Mapper(componentModel = "spring")
-interface TimesheetMapper {
+interface TimesheetDocumentMapper {
     companion object {
-        val INSTANCE: TimesheetMapper = Mappers.getMapper(TimesheetMapper::class.java)
+        val INSTANCE: TimesheetDocumentMapper = Mappers.getMapper(TimesheetDocumentMapper::class.java)
     }
 
     @Mapping(target = "timesheetDate", expression = "java(timesheet.getTimesheetDate().toEpochMilli())")
-    fun toTimesheetDto(timesheet: Timesheet): TimesheetDto
+    fun toTimesheetDto(timesheet: TimesheetDocument): TimesheetDto
 
     @Mappings(
         Mapping(target = "timesheetDate", expression = "java(java.time.Instant.ofEpochMilli(timesheetDto.getTimesheetDate()))"),
         Mapping(target = "user", ignore = true)
     )
-    fun toTimesheet(timesheetDto: TimesheetDto): Timesheet
+    fun toTimesheet(timesheetDto: TimesheetDto): TimesheetDocument
 }
