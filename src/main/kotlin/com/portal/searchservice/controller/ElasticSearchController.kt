@@ -2,7 +2,6 @@ package com.portal.searchservice.controller
 
 import com.portal.searchservice.dto.StoreScript
 import com.portal.searchservice.dto.TimesheetScriptRequest
-import com.portal.searchservice.mapper.TimesheetDocumentMapper
 import com.portal.searchservice.service.ElasticSearchService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -10,12 +9,12 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import utils.toDto
 
 @RestController
 @RequestMapping("/es")
 class ElasticSearchControllerImpl(
-    private val elasticSearchService: ElasticSearchService,
-    private val mapping: TimesheetDocumentMapper
+    private val elasticSearchService: ElasticSearchService
 ) : ElasticSearchController {
 
     @PostMapping("/stored-script/timesheets/get")
@@ -24,7 +23,7 @@ class ElasticSearchControllerImpl(
     ): ResponseEntity<Any> {
         val (scriptId, fields) = timesheetScriptRequest
         val timesheetDocuments = elasticSearchService.getTimesheetOnScript(scriptId, fields)
-        val timesheetDtos = timesheetDocuments.map { mapping.toTimesheetDto(it) }
+        val timesheetDtos = timesheetDocuments.map { timesheetDocument -> timesheetDocument.toDto() }
 
         return ResponseEntity(timesheetDtos, HttpStatus.OK)
     }
@@ -40,6 +39,7 @@ class ElasticSearchControllerImpl(
 interface ElasticSearchController {
     fun getTimesheetOnScript(timesheetScriptRequest: TimesheetScriptRequest): ResponseEntity<Any> =
         ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+
     fun createStoreScript(storeScript: StoreScript): ResponseEntity<Any> =
         ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
 }

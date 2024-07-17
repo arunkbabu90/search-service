@@ -13,12 +13,16 @@ interface TimesheetDocumentMapper {
         val INSTANCE: TimesheetDocumentMapper = Mappers.getMapper(TimesheetDocumentMapper::class.java)
     }
 
-    @Mapping(target = "timesheetDate", expression = "java(timesheet.getTimesheetDate().toEpochMilli())")
+
+    @Mappings(
+        Mapping(target = "timesheetDateMillis", expression = "java(timesheet.getTimesheetDate().toEpochMilli())"),
+        Mapping(target = "timesheetDate", expression = "java(timesheet.getTimesheetDate().toString())")
+    )
     fun toTimesheetDto(timesheet: TimesheetDocument): TimesheetDto
 
     @Mappings(
-        Mapping(target = "timesheetDate", expression = "java(java.time.Instant.ofEpochMilli(timesheetDto.getTimesheetDate()))"),
+        Mapping(target = "timesheetDate", expression = "java(java.time.Instant.ofEpochMilli(timesheetDto.getTimesheetDateMillis()))"),
         Mapping(target = "user", ignore = true)
     )
-    fun toTimesheet(timesheetDto: TimesheetDto): TimesheetDocument
+    fun toTimesheetDocument(timesheetDto: TimesheetDto): TimesheetDocument
 }

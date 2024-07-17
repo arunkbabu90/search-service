@@ -7,5 +7,6 @@ data class TimesheetDto(
     var task: String = "",
     var hours: Int = 0,
     var description: String = "",
-    @JsonProperty("timestamp") var timesheetDate: Long = 0
+    var timesheetDate: String = "",
+    @JsonProperty("timestamp") var timesheetDateMillis: Long = 0
 )
