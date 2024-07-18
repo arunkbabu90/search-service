@@ -2,8 +2,9 @@ package com.portal.searchservice.controller
 
 import com.portal.searchservice.domain.Timesheet
 import com.portal.searchservice.domain.TimesheetDocument
+import com.portal.searchservice.dto.ReportRequest
+import com.portal.searchservice.dto.ReportResponse
 import com.portal.searchservice.dto.TimesheetDto
-import com.portal.searchservice.mapper.TimesheetMapper
 import com.portal.searchservice.service.TimesheetService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -15,9 +16,32 @@ import java.time.Instant
 @RestController
 @RequestMapping("/timesheets")
 class TimesheetControllerImpl(
-    private val timesheetService: TimesheetService<Timesheet, TimesheetDocument>,
-    private val mapper: TimesheetMapper
+    private val timesheetService: TimesheetService<Timesheet, TimesheetDocument>
 ) : TimeSheetController {
+
+    @PostMapping("/report")
+    override fun generateTimesheetReport(@RequestBody body: ReportRequest): ResponseEntity<Any> {
+        val (username, startDate, endDate, columns) = body
+
+        val startDateInstant = Instant.parse(startDate)
+        val endDateInstant = Instant.parse(endDate)
+
+        val generatedTimesheetReport = timesheetService.generateTimesheetReport(
+            username = username,
+            startDate = startDateInstant,
+            endDate = endDateInstant,
+            requiredColumns = columns.toTypedArray()
+        )
+
+        val response = ReportResponse(
+            statusMessage = "Report Generated",
+            statusCode = HttpStatus.OK.value(),
+            username = username,
+            timesheets = generatedTimesheetReport
+        )
+
+        return ResponseEntity(response, HttpStatus.OK)
+    }
 
     @GetMapping
     override fun getTimesheetsBetween(
@@ -31,7 +55,7 @@ class TimesheetControllerImpl(
         val endDateInstant = Instant.parse(endDate)
 
         val timesheetDocuments = timesheetService.findTimesheetsBetween(username, startDateInstant, endDateInstant, page, size)
-        val timesheetDto = timesheetDocuments.map { timesheetDocument -> timesheetDocument.toDto() }
+        val timesheetDto: List<TimesheetDto> = timesheetDocuments.map { timesheetDocument -> timesheetDocument.toDto() }
 
         return ResponseEntity(timesheetDto, HttpStatus.OK)
     }
@@ -59,6 +83,7 @@ class TimesheetControllerImpl(
 
 
 interface TimeSheetController {
+    fun generateTimesheetReport(body: ReportRequest): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     fun getTimesheetsBetween(username: String, startDate: String, endDate: String, page: Int, size: Int): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     fun getTimesheets(username: String): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     fun saveTimesheetEntry(username: String, timesheetDto: TimesheetDto): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)

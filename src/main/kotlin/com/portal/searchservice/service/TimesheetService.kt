@@ -10,14 +10,34 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations
 import org.springframework.data.elasticsearch.core.query.Criteria
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery
 import org.springframework.stereotype.Service
+import utils.toMap
 import java.time.Instant
 
 @Service
 class TimesheetServiceImpl(
     private val timesheetRepository: TimesheetRepository,
     private val userRepository: UserRepository,
+    private val elasticSearchService: ElasticSearchService,
     private val operations: ElasticsearchOperations
 ) : TimesheetService<Timesheet, TimesheetDocument> {
+
+    override fun generateTimesheetReport(
+        scriptId: String,
+        username: String,
+        startDate: Instant,
+        endDate: Instant,
+        requiredColumns: Array<String>
+    ): List<Map<String, Any>> {
+        val user = userRepository.findByUsername(username)
+            ?: throw ResourceNotFoundException("User $username not found")
+
+        return elasticSearchService.getTimesheetBetweenDatesFilterByFields(
+            user.id,
+            startDate,
+            endDate,
+            *requiredColumns
+        ).map { it.toMap() }
+    }
 
     override fun findTimesheetsBetween(
         username: String,
@@ -32,7 +52,8 @@ class TimesheetServiceImpl(
         val userId: Long = user.id
         val pageable = PageRequest.of(from, size)
 
-        val criteria = Criteria("timesheet_date").between(startDate, endDate)
+        val criteria = Criteria("timesheet_date")
+            .between(startDate, endDate)
             .and("user_id").`is`(userId)
         val query = CriteriaQuery(criteria, pageable)
 
@@ -60,8 +81,16 @@ class TimesheetServiceImpl(
 }
 
 interface TimesheetService<T, out TD> {
+    fun generateTimesheetReport(
+        scriptId: String = "find_all_by_user_id_and_timesheet_date_range",
+        username: String,
+        startDate: Instant,
+        endDate: Instant,
+        requiredColumns: Array<String>
+    ) = listOf<Map<String, Any>>()
+
     fun findTimesheetsWithConfig(searchScript: String) = listOf<TD>()
     fun findTimesheetsBetween(username: String, startDate: Instant, endDate: Instant, from: Int, size: Int) = listOf<TD>()
-    fun getTimesheets(username: String): List<T> = listOf()
+    fun getTimesheets(username: String) = listOf<T>()
     fun saveTimesheetEntry(username: String, timesheet: T): T
 }

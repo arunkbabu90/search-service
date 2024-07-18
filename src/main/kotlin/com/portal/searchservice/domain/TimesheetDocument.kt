@@ -27,7 +27,7 @@ data class TimesheetDocument(
     var timesheetDate: Instant? = null,
 
     @Field(name = "updated_at", type = FieldType.Date)
-    var updatedAt: Instant? = Instant.now(),
+    var updatedAt: Instant? = null,
 
     @Field(name = "user", type = FieldType.Text)
     var user: String? = null
