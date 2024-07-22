@@ -90,7 +90,9 @@ interface TimesheetService<T, out TD> {
     ) = listOf<Map<String, Any>>()
 
     fun findTimesheetsWithConfig(searchScript: String) = listOf<TD>()
-    fun findTimesheetsBetween(username: String, startDate: Instant, endDate: Instant, from: Int, size: Int) = listOf<TD>()
+    fun findTimesheetsBetween(username: String, startDate: Instant, endDate: Instant, from: Int, size: Int) =
+        listOf<TD>()
+
     fun getTimesheets(username: String) = listOf<T>()
     fun saveTimesheetEntry(username: String, timesheet: T): T
 }
