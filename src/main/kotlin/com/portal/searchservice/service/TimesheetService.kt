@@ -1,5 +1,6 @@
 package com.portal.searchservice.service
 
+import com.portal.searchservice.domain.Configuration
 import com.portal.searchservice.domain.Timesheet
 import com.portal.searchservice.domain.TimesheetDocument
 import com.portal.searchservice.exception.ResourceNotFoundException
@@ -21,8 +22,20 @@ class TimesheetServiceImpl(
     private val operations: ElasticsearchOperations
 ) : TimesheetService<Timesheet, TimesheetDocument> {
 
+    override fun generateTimesheetReportWithConfig(
+        username: String,
+        configuration: Configuration
+    ): List<Map<String, Any>> {
+        val user = userRepository.findByUsername(username)
+            ?: throw ResourceNotFoundException("User $username not found")
+
+        return elasticSearchService.getTimesheetWithConfiguration(
+            user.id,
+            configuration
+        ).map { it.toMap() }
+    }
+
     override fun generateTimesheetReport(
-        scriptId: String,
         username: String,
         startDate: Instant,
         endDate: Instant,
@@ -81,15 +94,18 @@ class TimesheetServiceImpl(
 }
 
 interface TimesheetService<T, out TD> {
+    fun generateTimesheetReportWithConfig(
+        username: String,
+        configuration: Configuration
+    ) = listOf<Map<String, Any>>()
+
     fun generateTimesheetReport(
-        scriptId: String = "find_all_by_user_id_and_timesheet_date_range",
         username: String,
         startDate: Instant,
         endDate: Instant,
         requiredColumns: Array<String>
     ) = listOf<Map<String, Any>>()
 
-    fun findTimesheetsWithConfig(searchScript: String) = listOf<TD>()
     fun findTimesheetsBetween(username: String, startDate: Instant, endDate: Instant, from: Int, size: Int) =
         listOf<TD>()
 
