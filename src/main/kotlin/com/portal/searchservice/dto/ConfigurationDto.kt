@@ -15,8 +15,17 @@ data class Sort(
     var direction: String = ""
 )
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class Filter(
     var field: String = "",
+    private var _operator: String = "",
     var values: List<String> = listOf(),
-    var value: String = ""
-)
+    var value: String = "",
+    var highValue: String = ""
+) {
+    var operator: String
+        get() = _operator.uppercase()
+        set(value) {
+            _operator = value
+        }
+}

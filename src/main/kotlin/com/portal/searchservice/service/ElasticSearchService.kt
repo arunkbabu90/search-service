@@ -3,9 +3,11 @@ package com.portal.searchservice.service
 import co.elastic.clients.elasticsearch._types.FieldValue
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders
+import co.elastic.clients.json.JsonData
 import com.portal.searchservice.domain.Configuration
 import com.portal.searchservice.domain.TimesheetDocument
 import com.portal.searchservice.dto.Filter
+import com.portal.searchservice.exception.BadRequestException
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.elasticsearch.client.elc.NativeQuery
@@ -16,30 +18,11 @@ import org.springframework.data.elasticsearch.core.query.FetchSourceFilter
 import org.springframework.data.elasticsearch.core.query.SearchTemplateQuery
 import org.springframework.data.elasticsearch.core.script.Script
 import org.springframework.stereotype.Service
+import utils.*
 import java.time.Instant
-
 
 @Service
 class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) : ElasticSearchService {
-
-    override fun getTimesheetWithConfiguration(
-        userId: Long,
-        configuration: Configuration
-    ): List<TimesheetDocument> {
-        val (limit, sorts, filterGroups) = configuration
-
-        val boolQuery: BoolQuery.Builder = buildBoolQuery(filterGroups)
-        val sortOptions = buildSortOptions(sorts)
-        val pageable = PageRequest.of(0, limit)
-
-        // Build the sort options
-        val nativeQuery = NativeQuery.builder()
-            .withQuery { q -> q.bool(boolQuery.build()) }
-            .withPageable(pageable)
-            .build()
-
-        return operations.search(nativeQuery, TimesheetDocument::class.java).mapNotNull { it.content }
-    }
 
     override fun getTimesheetBetweenDatesFilterByFields(
         userId: Long,
@@ -78,6 +61,25 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
         return operations.putScript(esScript)
     }
 
+    override fun getTimesheetWithConfiguration(
+        userId: Long,
+        configuration: Configuration
+    ): List<TimesheetDocument> {
+        val (limit, sorts, filters) = configuration
+
+        val boolQuery: BoolQuery = buildBoolQuery(filters)
+        val sortOrders = buildSortOptions(sorts)
+        val pageable = PageRequest.of(0, limit)
+
+        val nativeQuery = NativeQuery.builder()
+            .withQuery { q -> q.bool(boolQuery) }
+            .withPageable(pageable)
+            .withSort(Sort.by(sortOrders))
+            .build()
+
+        return operations.search(nativeQuery, TimesheetDocument::class.java).mapNotNull { it.content }
+    }
+
     private fun buildSortOptions(sorts: List<com.portal.searchservice.dto.Sort>): List<Sort.Order> {
         return sorts.map { sort ->
             when (sort.direction.lowercase()) {
@@ -89,26 +91,116 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
         }
     }
 
-    private fun buildBoolQuery(filters: List<Filter>): BoolQuery.Builder {
+    private fun buildBoolQuery(filters: List<Filter>): BoolQuery {
         val boolQuery = QueryBuilders.bool()
 
         filters.forEach { filter ->
             if (filter.values.isNotEmpty()) {
-                boolQuery.must {
-                    it.terms { t ->
-                        t.field(filter.field).terms { t1 ->
-                            t1.value(filter.values.map { v -> FieldValue.of(v) })
+                when (filter.operator) {
+                    IN -> {
+                        boolQuery.must {
+                            it.terms { t ->
+                                t.field(filter.field).terms { t1 ->
+                                    t1.value(filter.values.map { v -> FieldValue.of(v) })
+                                }
+                            }
+                        }
+                    }
+                    NOT_IN -> {
+                        boolQuery.mustNot {
+                            it.terms { t ->
+                                t.field(filter.field).terms { t1 ->
+                                    t1.value(filter.values.map { v -> FieldValue.of(v) })
+                                }
+                            }
                         }
                     }
                 }
-            } else if (filter.value.isNotEmpty()) {
-                boolQuery.must {
-                    it.match { m -> m.field(filter.field).query(filter.value) }
+            } else if (filter.value.isNotBlank()) {
+                // Values only
+                when (filter.operator) {
+                    EQUAL_TO -> {
+                        boolQuery.must {
+                            it.term { t ->
+                                t.field(filter.field)
+                                    .value(filter.value)
+                            }
+                        }
+                    }
+                    NOT_EQUAL_TO -> {
+                        boolQuery.mustNot {
+                            it.term { t ->
+                                t.field(filter.field)
+                                    .value(filter.value)
+                            }
+                        }
+                    }
+                    BETWEEN -> {
+                        // Range Query. Here both upper and lower bounds are Inclusive
+                        if (filter.highValue.isNotBlank()) {
+                            boolQuery.must {
+                                it.range { r ->
+                                    r.field(filter.field)
+                                        .lte(JsonData.of(filter.value))
+                                        .gte(JsonData.of(filter.highValue))
+                                }
+                            }
+                        }
+                    }
+                    GREATER_THAN -> {
+                        boolQuery.must {
+                            it.range { r ->
+                                r.field(filter.field)
+                                    .gt(JsonData.of(filter.value))
+                            }
+                        }
+                    }
+                    GREATER_THAN_EQUAL_TO -> {
+                        boolQuery.must {
+                            it.range { r ->
+                                r.field(filter.field)
+                                    .gte(JsonData.of(filter.value))
+                            }
+                        }
+                    }
+                    LESS_THAN -> {
+                        boolQuery.must {
+                            it.range { r ->
+                                r.field(filter.field)
+                                    .lt(JsonData.of(filter.value))
+                            }
+                        }
+                    }
+                    LESS_THAN_EQUAL_TO -> {
+                        boolQuery.must {
+                            it.range { r ->
+                                r.field(filter.field)
+                                    .lte(JsonData.of(filter.value))
+                            }
+                        }
+                    }
+                    CONTAINS -> {
+                        boolQuery.must {
+                            it.match { m ->
+                                m.field(filter.field).query(filter.value)
+                            }
+                        }
+                    }
+                    NOT_CONTAINS -> {
+                        boolQuery.mustNot {
+                            it.match { m ->
+                                m.field(filter.field).query(filter.value)
+                            }
+                        }
+                    }
                 }
+
+            } else {
+                throw BadRequestException("Bad Request!")
             }
         }
 
-        return boolQuery
+        return boolQuery.build()
     }
 }
 
