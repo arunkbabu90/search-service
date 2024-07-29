@@ -20,6 +20,15 @@ class GlobalExceptionHandler {
             ), HttpStatus.INTERNAL_SERVER_ERROR
         )
 
+    @ExceptionHandler(BadRequestException::class)
+    fun handleBadRequestException(e: BadRequestException, request: WebRequest) =
+        ResponseEntity(
+            ErrorResponse(
+                statusMessage = e.message ?: "Bad Request",
+                statusCode = HttpStatus.BAD_REQUEST.value()
+            ), HttpStatus.BAD_REQUEST
+        )
+
     @ExceptionHandler(ResourceNotFoundException::class)
     fun handleProductNotFound(e: ResourceNotFoundException, request: WebRequest) =
         ResponseEntity(

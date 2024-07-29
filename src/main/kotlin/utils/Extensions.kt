@@ -22,3 +22,10 @@ fun TimesheetDocument.toMap(): Map<String, Any> {
         .filter { it.second != null && it.second != 0 && it.second != -1 } // Filter out null values, zeros, and -1
         .associate { it.first to it.second!! } // Map the property name to its value, ensuring no nulls
 }
+
+fun String.isNumber(): Boolean {
+    return this.toIntOrNull() != null || this.toDoubleOrNull() != null || this.toFloatOrNull() != null
+            || this.toLongOrNull() != null || this.toBigDecimalOrNull() != null || this.toBigIntegerOrNull() != null
+}
+
+fun String.isNotNumber() = !isNumber()

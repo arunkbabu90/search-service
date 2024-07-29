@@ -62,7 +62,6 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
     }
 
     override fun getTimesheetWithConfiguration(
-        userId: Long,
         configuration: Configuration
     ): List<TimesheetDocument> {
         val (limit, sorts, filters) = configuration
@@ -115,36 +114,57 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
                             }
                         }
                     }
+                    else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
                 }
             } else if (filter.value.isNotBlank()) {
                 // Values only
                 when (filter.operator) {
                     EQUAL_TO -> {
-                        boolQuery.must {
-                            it.term { t ->
-                                t.field(filter.field)
-                                    .value(filter.value)
+                        if (filter.value.isNotNumber()) {
+                            boolQuery.must {
+                                it.term { t ->
+                                    t.field("${filter.field}.keyword")
+                                    t.value(filter.value)
+                                }
+                            }
+                        } else {
+                            boolQuery.must {
+                                it.term { t ->
+                                    t.field(filter.field)
+                                    t.value(filter.value)
+                                }
                             }
                         }
                     }
                     NOT_EQUAL_TO -> {
-                        boolQuery.mustNot {
-                            it.term { t ->
-                                t.field(filter.field)
-                                    .value(filter.value)
+                        if (filter.value.isNotNumber()) {
+                            boolQuery.mustNot {
+                                it.term { t ->
+                                    t.field("${filter.field}.keyword")
+                                    t.value(filter.value)
+                                }
+                            }
+                        } else {
+                            boolQuery.mustNot {
+                                it.term { t ->
+                                    t.field(filter.field)
+                                    t.value(filter.value)
+                                }
                             }
                         }
                     }
                     BETWEEN -> {
-                        // Range Query. Here both upper and lower bounds are Inclusive
+                        // Range Query. Both upper and lower bounds are Inclusive
                         if (filter.highValue.isNotBlank()) {
                             boolQuery.must {
                                 it.range { r ->
                                     r.field(filter.field)
-                                        .lte(JsonData.of(filter.value))
-                                        .gte(JsonData.of(filter.highValue))
+                                        .lte(JsonData.of(filter.highValue))
+                                        .gte(JsonData.of(filter.value))
                                 }
                             }
+                        } else {
+                            throw BadRequestException("highValue is required")
                         }
                     }
                     GREATER_THAN -> {
@@ -193,6 +213,7 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
                             }
                         }
                     }
+                    else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
                 }
 
             } else {
@@ -202,11 +223,11 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
 
         return boolQuery.build()
     }
+
 }
 
 interface ElasticSearchService {
-    fun getTimesheetWithConfiguration(userId: Long,
-                                      configuration: Configuration) = listOf<TimesheetDocument>()
+    fun getTimesheetWithConfiguration(configuration: Configuration) = listOf<TimesheetDocument>()
 
     fun getTimesheetBetweenDatesFilterByFields(userId: Long,
                                                startDate: Instant,

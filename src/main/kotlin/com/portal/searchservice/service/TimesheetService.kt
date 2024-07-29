@@ -23,16 +23,12 @@ class TimesheetServiceImpl(
 ) : TimesheetService<Timesheet, TimesheetDocument> {
 
     override fun generateTimesheetReportWithConfig(
-        username: String,
         configuration: Configuration
     ): List<Map<String, Any>> {
-        val user = userRepository.findByUsername(username)
-            ?: throw ResourceNotFoundException("User $username not found")
-
-        return elasticSearchService.getTimesheetWithConfiguration(
-            user.id,
+        val a = elasticSearchService.getTimesheetWithConfiguration(
             configuration
         ).map { it.toMap() }
+        return a
     }
 
     override fun generateTimesheetReport(
@@ -94,10 +90,7 @@ class TimesheetServiceImpl(
 }
 
 interface TimesheetService<T, out TD> {
-    fun generateTimesheetReportWithConfig(
-        username: String,
-        configuration: Configuration
-    ) = listOf<Map<String, Any>>()
+    fun generateTimesheetReportWithConfig(configuration: Configuration) = listOf<Map<String, Any>>()
 
     fun generateTimesheetReport(
         username: String,
