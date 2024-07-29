@@ -28,4 +28,10 @@ fun String.isNumber(): Boolean {
             || this.toLongOrNull() != null || this.toBigDecimalOrNull() != null || this.toBigIntegerOrNull() != null
 }
 
-fun String.isNotNumber() = !isNumber()
+fun String.isNotNumber(): Boolean = !isNumber()
+
+fun String.isBoolean(): Boolean = this.equals("true", ignoreCase = true) || this.equals("false", ignoreCase = true)
+fun String.isNotBoolean(): Boolean = !isBoolean()
+
+fun String.isString(): Boolean = isNotBoolean() && isNotNumber()
+fun String.isNotString(): Boolean = !isString()

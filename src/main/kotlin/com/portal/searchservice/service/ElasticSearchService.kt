@@ -120,7 +120,7 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
                 // Values only
                 when (filter.operator) {
                     EQUAL_TO -> {
-                        if (filter.value.isNotNumber()) {
+                        if (filter.value.isString()) {
                             boolQuery.must {
                                 it.term { t ->
                                     t.field("${filter.field}.keyword")
@@ -137,7 +137,7 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
                         }
                     }
                     NOT_EQUAL_TO -> {
-                        if (filter.value.isNotNumber()) {
+                        if (filter.value.isString()) {
                             boolQuery.mustNot {
                                 it.term { t ->
                                     t.field("${filter.field}.keyword")
