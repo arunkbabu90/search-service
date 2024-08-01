@@ -23,10 +23,8 @@ interface TimesheetDocumentMapper {
 
     @Mappings(
         Mapping(target = "timesheetDate", expression = "java(java.time.Instant.ofEpochMilli(timesheetDto.getTimesheetDateMillis()))"),
-        Mapping(target = "user", ignore = true)
     )
     fun toTimesheetDocument(timesheetDto: TimesheetDto): TimesheetDocument
 
-    @Mapping(target = "user", ignore = true)
     fun toTimesheet(timesheet: TimesheetDocument): Timesheet
 }

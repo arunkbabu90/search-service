@@ -6,13 +6,10 @@ import org.springframework.data.elasticsearch.annotations.Field
 import org.springframework.data.elasticsearch.annotations.FieldType
 import java.time.Instant
 
-@Document(indexName = "logstash-*")
+@Document(indexName = "hrms-*")
 data class TimesheetDocument(
     @Id
     var id: Long = 0,
-
-    @Field(name = "project", type = FieldType.Text)
-    var project: String? = null,
 
     @Field(name = "task", type = FieldType.Text)
     var task: String? = null,
@@ -29,6 +26,18 @@ data class TimesheetDocument(
     @Field(name = "updated_at", type = FieldType.Date)
     var updatedAt: Instant? = null,
 
-    @Field(name = "user", type = FieldType.Text)
-    var user: String? = null
+    @Field(name = "user_id", type = FieldType.Integer)
+    var userId: Long = 0,
+
+    @Field(name = "project_name", type = FieldType.Text)
+    val projectName: String?,
+
+    @Field(name = "type", type = FieldType.Text)
+    val type: String?,
+
+    @Field(name = "start_date", type = FieldType.Date)
+    val startDate: Instant?,
+
+    @Field(name = "end_date", type = FieldType.Date)
+    val endDate: Instant?
 )

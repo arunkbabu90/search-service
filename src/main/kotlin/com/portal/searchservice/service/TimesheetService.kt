@@ -22,13 +22,8 @@ class TimesheetServiceImpl(
     private val operations: ElasticsearchOperations
 ) : TimesheetService<Timesheet, TimesheetDocument> {
 
-    override fun generateTimesheetReportWithConfig(
-        configuration: Configuration
-    ): List<Map<String, Any>> {
-        val a = elasticSearchService.getTimesheetWithConfiguration(
-            configuration
-        ).map { it.toMap() }
-        return a
+    override fun generateTimesheetReportWithConfig(configuration: Configuration): List<Map<String, Any>> {
+        return elasticSearchService.getTimesheetWithConfiguration(configuration)
     }
 
     override fun generateTimesheetReport(
@@ -90,7 +85,7 @@ class TimesheetServiceImpl(
 }
 
 interface TimesheetService<T, out TD> {
-    fun generateTimesheetReportWithConfig(configuration: Configuration) = listOf<Map<String, Any>>()
+    fun generateTimesheetReportWithConfig(configuration: Configuration): List<Map<String, Any>> = listOf<Map<String, Any>>()
 
     fun generateTimesheetReport(
         username: String,

@@ -24,11 +24,16 @@ class TimesheetControllerImpl(
     @PostMapping("/report/with/config")
     override fun generateTimesheetReportWithConfig(@RequestBody body: ConfigurationDto): ResponseEntity<Any> {
         val configuration = body.toConfiguration()
-        val generatedTimesheetReport = timesheetService.generateTimesheetReportWithConfig(configuration)
+        val generatedTimesheetReport = timesheetService.generateTimesheetReportWithConfig(configuration).toMutableList()
+        val totalHits = generatedTimesheetReport.find { it.containsKey("total_hits") }?.get("total_hits") as Long
+        generatedTimesheetReport.removeIf { it.containsKey("total_hits") }
+        val hits = generatedTimesheetReport.size
 
         val response = ReportResponse(
             statusMessage = "Report Generated",
             statusCode = HttpStatus.OK.value(),
+            totalHits = totalHits.toInt(),
+            showingHits = hits,
             timesheets = generatedTimesheetReport
         )
 

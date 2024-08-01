@@ -12,9 +12,6 @@ data class Timesheet(
     var id: Long = 0,
 
     @Column(nullable = false)
-    var project: String? = null,
-
-    @Column(nullable = false)
     var task: String? = null,
 
     @Column(nullable = false)
@@ -31,5 +28,9 @@ data class Timesheet(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    var user: User?
+    var user: User,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "allocation_id", nullable = false)
+    var allocation: Allocation
 ) : Serializable

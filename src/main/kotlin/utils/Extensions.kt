@@ -19,8 +19,8 @@ fun ConfigurationDto.toConfiguration() = ConfigurationMapper.INSTANCE.toConfigur
 fun TimesheetDocument.toMap(): Map<String, Any> {
     return this::class.memberProperties
         .map { it.name to it.getter.call(this) }
-        .filter { it.second != null && it.second != 0 && it.second != -1 } // Filter out null values, zeros, and -1
-        .associate { it.first to it.second!! } // Map the property name to its value, ensuring no nulls
+        .filter { it.second != null && it.second != 0 && it.second != -1 }
+        .associate { it.first to it.second!! }
 }
 
 fun String.isNumber(): Boolean {

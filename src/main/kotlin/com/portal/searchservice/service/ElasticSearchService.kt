@@ -21,8 +21,12 @@ import org.springframework.stereotype.Service
 import utils.*
 import java.time.Instant
 
+
 @Service
-class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) : ElasticSearchService {
+class ElasticSearchServiceImpl(
+    private val operations: ElasticsearchOperations,
+//    private val client: ElasticsearchClient
+) : ElasticSearchService {
 
     override fun getTimesheetBetweenDatesFilterByFields(
         userId: Long,
@@ -63,7 +67,7 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
 
     override fun getTimesheetWithConfiguration(
         configuration: Configuration
-    ): List<TimesheetDocument> {
+    ): List<Map<String, Any>> {
         val (limit, sorts, filters) = configuration
 
         val boolQuery: BoolQuery = buildBoolQuery(filters)
@@ -76,7 +80,12 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
             .withSort(Sort.by(sortOrders))
             .build()
 
-        return operations.search(nativeQuery, TimesheetDocument::class.java).mapNotNull { it.content }
+        val searchHits = operations.search(nativeQuery, TimesheetDocument::class.java)
+        return searchHits.mapNotNull { it.content }
+            .map { it.toMap() }
+            .toMutableList().apply {
+                add(mapOf("total_hits" to searchHits.totalHits))
+            }
     }
 
     private fun buildSortOptions(sorts: List<com.portal.searchservice.dto.Sort>): List<Sort.Order> {
@@ -227,7 +236,7 @@ class ElasticSearchServiceImpl(private val operations: ElasticsearchOperations) 
 }
 
 interface ElasticSearchService {
-    fun getTimesheetWithConfiguration(configuration: Configuration) = listOf<TimesheetDocument>()
+    fun getTimesheetWithConfiguration(configuration: Configuration): List<Map<String, Any>> = listOf()
 
     fun getTimesheetBetweenDatesFilterByFields(userId: Long,
                                                startDate: Instant,

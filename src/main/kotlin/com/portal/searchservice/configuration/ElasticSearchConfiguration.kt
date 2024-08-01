@@ -47,5 +47,12 @@ class ElasticsearchConfig {
     fun elasticsearchOperations(client: ElasticsearchClient?): ElasticsearchOperations {
         return ElasticsearchTemplate(client!!)
     }
+
+//    @Bean
+//    fun elasticsearchClient(): ElasticsearchClient {
+//        val restClient = RestClient.builder(HttpHost("localhost", 9200, "http")).build()
+//        val transport = RestClientTransport(restClient, JacksonJsonpMapper())
+//        return ElasticsearchClient(transport)
+//    }
 }
 
