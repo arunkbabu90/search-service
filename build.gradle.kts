@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.tasks.bundling.BootJar
+
 val springBootVersion = "3.3.1"
 val mapstructVersion = "1.5.5.Final"
 
@@ -66,4 +68,9 @@ kotlin {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+tasks.withType<BootJar> {
+	archiveFileName.set("search_service.jar")
+	mainClass = "com.portal.searchservice.SearchServiceApplicationKt"
 }

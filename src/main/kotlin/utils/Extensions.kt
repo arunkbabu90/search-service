@@ -1,5 +1,6 @@
 package utils
 
+import co.elastic.clients.elasticsearch._types.SortOrder
 import com.portal.searchservice.domain.Timesheet
 import com.portal.searchservice.domain.TimesheetDocument
 import com.portal.searchservice.dto.ConfigurationDto
@@ -35,3 +36,11 @@ fun String.isNotBoolean(): Boolean = !isBoolean()
 
 fun String.isString(): Boolean = isNotBoolean() && isNotNumber()
 fun String.isNotString(): Boolean = !isString()
+
+fun String.toSortOrder(): SortOrder {
+    return when (this) {
+        "asc", "ascending" -> SortOrder.Asc
+        "desc", "descending" -> SortOrder.Desc
+        else -> throw IllegalArgumentException("Invalid Sort Order")
+    }
+}

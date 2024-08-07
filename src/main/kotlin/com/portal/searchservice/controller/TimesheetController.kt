@@ -99,10 +99,37 @@ class TimesheetControllerImpl(
 
         return ResponseEntity(timesheetResponse, HttpStatus.OK)
     }
+
+    @GetMapping("/fun")
+    override fun getTimesheetsUsingFunction(): ResponseEntity<Any> {
+        val timesheets = timesheetService.getTimesheetsByFunction()
+        println(timesheets)
+        return ResponseEntity(timesheets, HttpStatus.OK)
+    }
+
+    @GetMapping("/fun/user")
+    override fun getTimesheetsByUsernameUsingFunction(@RequestParam("u") username: String): ResponseEntity<Any> {
+        val timesheets = timesheetService.getTimesheetsByUsernameByFunction(username)
+        return ResponseEntity(timesheets, HttpStatus.OK)
+    }
+
+    @PostMapping("/report/with/config/fun")
+    override fun generateTimesheetReportByConfiguration(@RequestBody body: ConfigurationDto): ResponseEntity<Any> {
+        val configuration = body.toConfiguration()
+        val timesheets = timesheetService.generateTimesheetReportByConfiguration(configuration)
+
+        return ResponseEntity(timesheets, HttpStatus.OK)
+    }
 }
 
 
 interface TimeSheetController {
+    fun getTimesheetsByUsernameUsingFunction(username: String): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    fun getTimesheetsUsingFunction(): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+
+    // TODO: Delete after fully implemented
+    fun generateTimesheetReportByConfiguration(body: ConfigurationDto): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+
     fun generateTimesheetReportWithConfig(body: ConfigurationDto): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     fun generateTimesheetReport(body: ReportRequest): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     fun getTimesheetsBetween(username: String, startDate: String, endDate: String, page: Int, size: Int): ResponseEntity<Any> = ResponseEntity(HttpStatus.NOT_IMPLEMENTED)

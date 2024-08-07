@@ -1,8 +1,12 @@
 package com.portal.searchservice.service
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient
 import co.elastic.clients.elasticsearch._types.FieldValue
+import co.elastic.clients.elasticsearch._types.SortOptions
+import co.elastic.clients.elasticsearch._types.mapping.Property
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders
+import co.elastic.clients.elasticsearch.indices.GetMappingRequest
 import co.elastic.clients.json.JsonData
 import com.portal.searchservice.domain.Configuration
 import com.portal.searchservice.domain.TimesheetDocument
@@ -25,7 +29,7 @@ import java.time.Instant
 @Service
 class ElasticSearchServiceImpl(
     private val operations: ElasticsearchOperations,
-//    private val client: ElasticsearchClient
+    private val client: ElasticsearchClient
 ) : ElasticSearchService {
 
     override fun getTimesheetBetweenDatesFilterByFields(
@@ -68,16 +72,17 @@ class ElasticSearchServiceImpl(
     override fun getTimesheetWithConfiguration(
         configuration: Configuration
     ): List<Map<String, Any>> {
-        val (limit, sorts, filters) = configuration
+        val (limitValue, sorts, filters) = configuration
+        val limit = if (limitValue > 0) limitValue else DEFAULT_RESULT_LIMIT
 
         val boolQuery: BoolQuery = buildBoolQuery(filters)
-        val sortOrders = buildSortOptions(sorts)
+        val sortOptions = buildSortOptions(sorts)
         val pageable = PageRequest.of(0, limit)
 
         val nativeQuery = NativeQuery.builder()
             .withQuery { q -> q.bool(boolQuery) }
             .withPageable(pageable)
-            .withSort(Sort.by(sortOrders))
+            .withSort(sortOptions)
             .build()
 
         val searchHits = operations.search(nativeQuery, TimesheetDocument::class.java)
@@ -88,15 +93,33 @@ class ElasticSearchServiceImpl(
             }
     }
 
-    private fun buildSortOptions(sorts: List<com.portal.searchservice.dto.Sort>): List<Sort.Order> {
+    private fun buildSortOptions(sorts: List<com.portal.searchservice.dto.Sort>): List<SortOptions> {
         return sorts.map { sort ->
-            when (sort.direction.lowercase()) {
-                "asc", "ascending" -> {
-                    Sort.Order.asc(sort.field)
+            SortOptions.Builder().field { f ->
+                // TODO: Get the field types first
+                // TODO: Then if it's string then append keyword to the field name "${sort.field}.keyword"
+                // TODO: Else use the field name as is "${sort.field}"
+                val fieldName = if (isStringField(sort.field)) {
+                    "${sort.field}.keyword"
+                } else {
+                    sort.field
                 }
-                else -> Sort.Order.desc(sort.field)
-            }
+
+                f.field(fieldName).order(sort.direction.toSortOrder())
+            }.build()
         }
+    }
+
+    private fun isStringField(field: String): Boolean {
+        val index = "hrms-timesheet-detailed"
+        val request = GetMappingRequest.Builder()
+            .index(index)
+            .build()
+
+        val response = client.indices().getMapping(request)
+        val mappings: Property? = response.result()[index]?.mappings()?.properties()?.get(field)
+
+        return mappings?.isText ?: false
     }
 
     private fun buildBoolQuery(filters: List<Filter>): BoolQuery {
@@ -236,13 +259,12 @@ class ElasticSearchServiceImpl(
 }
 
 interface ElasticSearchService {
-    fun getTimesheetWithConfiguration(configuration: Configuration): List<Map<String, Any>> = listOf()
-
+    fun getTimesheetWithConfiguration(configuration: Configuration): List<Map<String, Any>> = emptyList()
     fun getTimesheetBetweenDatesFilterByFields(userId: Long,
                                                startDate: Instant,
                                                endDate: Instant,
-                                               vararg fields: String) = listOf<TimesheetDocument>()
+                                               vararg fields: String) = emptyList<TimesheetDocument>()
 
-    fun getTimesheetOnScript(scriptId: String, fields: Map<String, String>) = listOf<TimesheetDocument>()
+    fun getTimesheetOnScript(scriptId: String, fields: Map<String, String>) = emptyList<TimesheetDocument>()
     fun createStoredScript(scriptId: String, script: String): Boolean = false
 }

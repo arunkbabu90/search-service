@@ -11,3 +11,5 @@ const val LESS_THAN = "LT"
 const val LESS_THAN_EQUAL_TO = "LTE"
 const val NOT_IN = "NOT_IN"
 const val IN = "IN"
+
+const val DEFAULT_RESULT_LIMIT = 1000

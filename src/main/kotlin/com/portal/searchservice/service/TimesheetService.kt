@@ -4,6 +4,7 @@ import com.portal.searchservice.domain.Configuration
 import com.portal.searchservice.domain.Timesheet
 import com.portal.searchservice.domain.TimesheetDocument
 import com.portal.searchservice.exception.ResourceNotFoundException
+import com.portal.searchservice.repository.CustomTimesheetRepository
 import com.portal.searchservice.repository.TimesheetRepository
 import com.portal.searchservice.repository.UserRepository
 import org.springframework.data.domain.PageRequest
@@ -17,6 +18,7 @@ import java.time.Instant
 @Service
 class TimesheetServiceImpl(
     private val timesheetRepository: TimesheetRepository,
+    private val customTimesheetRepository: CustomTimesheetRepository,
     private val userRepository: UserRepository,
     private val elasticSearchService: ElasticSearchService,
     private val operations: ElasticsearchOperations
@@ -82,21 +84,33 @@ class TimesheetServiceImpl(
 
         return timesheetRepository.save(timesheet)
     }
+
+    override fun getTimesheetsByFunction(): List<Map<String, Any>> =
+        timesheetRepository.findFirst100TimesheetsUsingFunction()
+
+    override fun getTimesheetsByUsernameByFunction(username: String): List<Map<String, Any>> =
+        customTimesheetRepository.findTimesheetsByUsernameUsingFunction(username)
+
+    override fun generateTimesheetReportByConfiguration(configuration: Configuration): List<Map<String, Any>> =
+        customTimesheetRepository.findTimesheetByConfiguration(configuration)
 }
 
 interface TimesheetService<T, out TD> {
-    fun generateTimesheetReportWithConfig(configuration: Configuration): List<Map<String, Any>> = listOf<Map<String, Any>>()
+    fun getTimesheetsByUsernameByFunction(username: String) = emptyList<Map<String, Any>>()
+    fun getTimesheetsByFunction(): List<Map<String, Any>> = emptyList()
+    fun generateTimesheetReportByConfiguration(configuration: Configuration): List<Map<String, Any>> = emptyList()
+    fun generateTimesheetReportWithConfig(configuration: Configuration): List<Map<String, Any>> = emptyList()
 
     fun generateTimesheetReport(
         username: String,
         startDate: Instant,
         endDate: Instant,
         requiredColumns: Array<String>
-    ) = listOf<Map<String, Any>>()
+    ) = emptyList<Map<String, Any>>()
 
     fun findTimesheetsBetween(username: String, startDate: Instant, endDate: Instant, from: Int, size: Int) =
-        listOf<TD>()
+        emptyList<TD>()
 
-    fun getTimesheets(username: String) = listOf<T>()
+    fun getTimesheets(username: String) = emptyList<T>()
     fun saveTimesheetEntry(username: String, timesheet: T): T
 }
