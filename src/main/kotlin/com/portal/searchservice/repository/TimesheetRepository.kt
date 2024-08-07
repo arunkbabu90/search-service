@@ -4,9 +4,13 @@ import com.portal.searchservice.domain.Configuration
 import com.portal.searchservice.domain.Timesheet
 import com.portal.searchservice.domain.User
 import com.portal.searchservice.dto.Filter
+import com.portal.searchservice.dto.Sort
 import com.portal.searchservice.exception.BadRequestException
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
+import jakarta.persistence.criteria.Path
+import jakarta.persistence.criteria.Predicate
+import org.springframework.data.jpa.domain.Specification
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
@@ -40,82 +44,26 @@ class CustomTimesheetRepository {
         val queryJoiner = StringJoiner(" ")
         queryJoiner.add("SELECT * FROM get_agg_timesheet()")
 
-        configuration.filters.forEach { filter: Filter ->
+        val filterQuery = buildFiterQuery(configuration.filters)
+        val sortOrderQuery = buildSortOrder(configuration.sorts)
+        val limitQuery = buildLimitQuery(configuration.limit)
 
-            if (filter.values.isNotEmpty()) {
-                when (filter.operator) {
-                    IN -> {
+//        queryJoiner.add(filterQuery)
+        queryJoiner.add(sortOrderQuery)
+        queryJoiner.add(limitQuery)
 
-                    }
+        val a = entityManager.createNativeQuery(queryJoiner.toString(), Map::class.java)
+            .resultList as List<Map<String, Any>>
 
-                    NOT_IN -> {
+        return a
+    }
 
-                    }
+    private fun buildLimitQuery(limit: Int) = if (limit > 0) "LIMIT $limit" else "LIMIT $DEFAULT_RESULT_LIMIT"
 
-                    else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
-                }
-            } else if (filter.value.isNotBlank()) {
-                // Values only
-                when (filter.operator) {
-                    EQUAL_TO -> {
-                        if (filter.value.isString()) {
-
-                        } else {
-
-                        }
-                    }
-
-                    NOT_EQUAL_TO -> {
-                        if (filter.value.isString()) {
-
-                        } else {
-
-                        }
-                    }
-
-                    BETWEEN -> {
-                        // Range Query. Both upper and lower bounds are Inclusive
-                        if (filter.highValue.isNotBlank()) {
-
-                        } else {
-                            throw BadRequestException("highValue is required")
-                        }
-                    }
-
-                    GREATER_THAN -> {
-
-                    }
-
-                    GREATER_THAN_EQUAL_TO -> {
-
-                    }
-
-                    LESS_THAN -> {
-
-                    }
-
-                    LESS_THAN_EQUAL_TO -> {
-
-                    }
-
-                    CONTAINS -> {
-
-                    }
-
-                    NOT_CONTAINS -> {
-
-                    }
-
-                    else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
-                }
-
-            } else {
-                throw BadRequestException("Bad Request!")
-            }
-        }
-
+    private fun buildSortOrder(sorts: List<Sort>): String {
+        val mainJoiner = StringJoiner(" ")
         val sortJoiner = StringJoiner(",")
-        configuration.sorts.forEach { sort ->
+        sorts.forEach { sort ->
             val (field, direction) = sort
             when (direction.lowercase()) {
                 "asc", "ascending" -> {
@@ -128,20 +76,125 @@ class CustomTimesheetRepository {
         }
 
         if (sortJoiner.length() > 0) {
-            queryJoiner.add("ORDER BY")
-            queryJoiner.add(sortJoiner.toString())
+            mainJoiner.add("ORDER BY")
+            mainJoiner.add(sortJoiner.toString())
         }
 
-        val limit = configuration.limit
-        queryJoiner.add(if (limit > 0) "LIMIT $limit" else "LIMIT $DEFAULT_RESULT_LIMIT")
-
-        val a = entityManager.createNativeQuery(queryJoiner.toString(), Map::class.java)
-            .resultList as List<Map<String, Any>>
-
-        return a
+        return mainJoiner.toString()
     }
 
-    private fun buildSort() {
+    private fun buildFiterQuery(filters: List<Filter>): Specification<List<Map<String, Any>>> {
+        return Specification { root, _, criteriaBuilder ->
+            val predicates = mutableListOf<Predicate>()
 
+            filters.forEach { filter: Filter ->
+                if (filter.values.isNotEmpty()) {
+                    when (filter.operator) {
+                        IN -> {
+                            val path: Path<Any> = root.get(filter.field)
+                            val clause = criteriaBuilder.`in`(path)
+                            filter.values.forEach { clause.value(it) }
+
+                            predicates.add(clause)
+                        }
+
+                        NOT_IN -> {
+                            val path: Path<Any> = root.get(filter.field)
+                            val clause = criteriaBuilder.`in`(path)
+                            filter.values.forEach { clause.value(it) }
+
+                            predicates.add(criteriaBuilder.not(clause))
+                        }
+
+                        else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
+                    }
+                } else if (filter.value.isNotBlank()) {
+                    // Values only
+                    when (filter.operator) {
+                        EQUAL_TO -> {
+                            val path = if (filter.value.isString()) {
+                                root.get<String>("${filter.field}.keyword")
+                            } else {
+                                root.get<Any>(filter.field)
+                            }
+                            val clause = criteriaBuilder.equal(path, filter.value)
+                            predicates.add(clause)
+                        }
+
+                        NOT_EQUAL_TO -> {
+                            val path = if (filter.value.isString()) {
+                                root.get<String>("${filter.field}.keyword")
+                            } else {
+                                root.get<Any>(filter.field)
+                            }
+                            val clause = criteriaBuilder.notEqual(path, filter.value)
+                            predicates.add(clause)
+                        }
+
+                        BETWEEN -> {
+                            // Range Query. Both upper and lower bounds are Inclusive
+                            if (filter.highValue.isNotBlank()) {
+                                val path: Path<String> = root.get(filter.field)
+                                val clause = criteriaBuilder.between(path, filter.value, filter.highValue)
+
+                                predicates.add(clause)
+                            } else {
+                                throw BadRequestException("highValue is required")
+                            }
+                        }
+
+                        GREATER_THAN -> {
+                            val path: Path<String> = root.get(filter.field)
+                            val clause = criteriaBuilder.greaterThan(path, filter.value)
+
+                            predicates.add(clause)
+                        }
+
+                        GREATER_THAN_EQUAL_TO -> {
+                            val path: Path<String> = root.get(filter.field)
+                            val clause = criteriaBuilder.greaterThanOrEqualTo(path, filter.value)
+
+                            predicates.add(clause)
+                        }
+
+                        LESS_THAN -> {
+                            val path: Path<String> = root.get(filter.field)
+                            val clause = criteriaBuilder.lessThan(path, filter.value)
+
+                            predicates.add(clause)
+                        }
+
+                        LESS_THAN_EQUAL_TO -> {
+                            val path: Path<String> = root.get(filter.field)
+                            val clause = criteriaBuilder.lessThanOrEqualTo(path, filter.value)
+
+                            predicates.add(clause)
+                        }
+
+                        CONTAINS -> {
+                            val path: Path<String> = root.get(filter.field)
+                            val clause = criteriaBuilder.like(path, "%${filter.value}%")
+
+                            predicates.add(clause)
+                        }
+
+                        NOT_CONTAINS -> {
+                            val path: Path<String> = root.get(filter.field)
+                            val clause = criteriaBuilder.notLike(path, "%${filter.value}%")
+
+                            predicates.add(clause)
+                        }
+
+                        else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
+                    }
+
+                } else {
+                    throw BadRequestException("Bad Request!")
+                }
+            }
+
+            criteriaBuilder.and(*predicates.toTypedArray())
+        }
     }
+
 }

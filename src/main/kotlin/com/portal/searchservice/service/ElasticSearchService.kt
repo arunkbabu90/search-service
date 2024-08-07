@@ -96,15 +96,7 @@ class ElasticSearchServiceImpl(
     private fun buildSortOptions(sorts: List<com.portal.searchservice.dto.Sort>): List<SortOptions> {
         return sorts.map { sort ->
             SortOptions.Builder().field { f ->
-                // TODO: Get the field types first
-                // TODO: Then if it's string then append keyword to the field name "${sort.field}.keyword"
-                // TODO: Else use the field name as is "${sort.field}"
-                val fieldName = if (isStringField(sort.field)) {
-                    "${sort.field}.keyword"
-                } else {
-                    sort.field
-                }
-
+                val fieldName = if (isStringField(sort.field)) { "${sort.field}.keyword" } else { sort.field }
                 f.field(fieldName).order(sort.direction.toSortOrder())
             }.build()
         }
