@@ -24,6 +24,13 @@ fun TimesheetDocument.toMap(): Map<String, Any> {
         .associate { it.first to it.second!! }
 }
 
+fun Timesheet.toMap(): Map<String, Any> {
+    return this::class.memberProperties
+        .map { it.name to it.getter.call(this) }
+        .filter { it.second != null && it.second != 0 && it.second != -1 }
+        .associate { it.first to it.second!! }
+}
+
 fun String.isNumber(): Boolean {
     return this.toIntOrNull() != null || this.toDoubleOrNull() != null || this.toFloatOrNull() != null
             || this.toLongOrNull() != null || this.toBigDecimalOrNull() != null || this.toBigIntegerOrNull() != null

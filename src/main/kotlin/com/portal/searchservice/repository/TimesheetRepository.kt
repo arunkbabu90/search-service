@@ -12,12 +12,13 @@ import jakarta.persistence.criteria.Path
 import jakarta.persistence.criteria.Predicate
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import utils.*
 import java.util.*
 
-interface TimesheetRepository : JpaRepository<Timesheet, Long> {
+interface TimesheetRepository : JpaRepository<Timesheet, Long>{
     fun findByUser(user: User): List<Timesheet>
 
     @Query("SELECT * FROM get_agg_timesheet() LIMIT 100", nativeQuery = true)
@@ -27,8 +28,10 @@ interface TimesheetRepository : JpaRepository<Timesheet, Long> {
     fun findTimesheetsByUsernameUsingFunction(username: String): List<Map<String, Any>>
 }
 
+interface TimesheetRepository1 : JpaRepository<ArrayList<Map<String, Any>>, Long>, JpaSpecificationExecutor<ArrayList<Map<String, Any>>>
+
 @Repository
-class CustomTimesheetRepository {
+class CustomTimesheetRepository(private val repository: TimesheetRepository1) {
     @PersistenceContext
     private lateinit var entityManager: EntityManager
 
@@ -44,47 +47,38 @@ class CustomTimesheetRepository {
         val queryJoiner = StringJoiner(" ")
         queryJoiner.add("SELECT * FROM get_agg_timesheet()")
 
-        val filterQuery = buildFiterQuery(configuration.filters)
-        val sortOrderQuery = buildSortOrder(configuration.sorts)
+//        val filterQuery = buildFiterQuery(configuration.filters)
+//        val sortOrderQuery = buildSortQuery(configuration.sorts)
         val limitQuery = buildLimitQuery(configuration.limit)
 
+        val spec = buildQuery(configuration.filters, configuration.sorts)
+
 //        queryJoiner.add(filterQuery)
-        queryJoiner.add(sortOrderQuery)
+//        queryJoiner.add(sortOrderQuery)
         queryJoiner.add(limitQuery)
 
-        val a = entityManager.createNativeQuery(queryJoiner.toString(), Map::class.java)
-            .resultList as List<Map<String, Any>>
+//        val a = entityManager.createNativeQuery(queryJoiner.toString(), Map::class.java)
+//            .resultList as List<Map<String, Any>>
 
-        return a
+//        return a
+
+//        val timesheets = repository.findAll(spec)
+//        return timesheets.flatten()
+        return emptyList()
     }
 
     private fun buildLimitQuery(limit: Int) = if (limit > 0) "LIMIT $limit" else "LIMIT $DEFAULT_RESULT_LIMIT"
 
-    private fun buildSortOrder(sorts: List<Sort>): String {
-        val mainJoiner = StringJoiner(" ")
-        val sortJoiner = StringJoiner(",")
-        sorts.forEach { sort ->
-            val (field, direction) = sort
-            when (direction.lowercase()) {
-                "asc", "ascending" -> {
-                    sortJoiner.add("$field ASC")
-                }
-                "desc", "descending" -> {
-                    sortJoiner.add("$field DESC")
-                }
-            }
-        }
-
-        if (sortJoiner.length() > 0) {
-            mainJoiner.add("ORDER BY")
-            mainJoiner.add(sortJoiner.toString())
-        }
-
-        return mainJoiner.toString()
+    private fun buildFilterQuery(filters: List<Filter>): String {
+        return ""
     }
 
-    private fun buildFiterQuery(filters: List<Filter>): Specification<List<Map<String, Any>>> {
-        return Specification { root, _, criteriaBuilder ->
+    private fun buildSortQuery(sorts: List<Sort>): String {
+        return ""
+    }
+
+    private fun buildQuery(filters: List<Filter>, sorts: List<Sort>): Specification<Any> {
+        return Specification { root, query, criteriaBuilder ->
             val predicates = mutableListOf<Predicate>()
 
             filters.forEach { filter: Filter ->
@@ -112,21 +106,13 @@ class CustomTimesheetRepository {
                     // Values only
                     when (filter.operator) {
                         EQUAL_TO -> {
-                            val path = if (filter.value.isString()) {
-                                root.get<String>("${filter.field}.keyword")
-                            } else {
-                                root.get<Any>(filter.field)
-                            }
+                            val path = root.get<String>(filter.field)
                             val clause = criteriaBuilder.equal(path, filter.value)
                             predicates.add(clause)
                         }
 
                         NOT_EQUAL_TO -> {
-                            val path = if (filter.value.isString()) {
-                                root.get<String>("${filter.field}.keyword")
-                            } else {
-                                root.get<Any>(filter.field)
-                            }
+                            val path = root.get<String>(filter.field)
                             val clause = criteriaBuilder.notEqual(path, filter.value)
                             predicates.add(clause)
                         }
@@ -193,6 +179,21 @@ class CustomTimesheetRepository {
                 }
             }
 
+            val sortOrders = sorts.map { sort ->
+                val (field, direction) = sort
+                val path = root.get<Any>(field)
+                when (direction.lowercase()) {
+                    "asc", "ascending" -> {
+                        criteriaBuilder.asc(path)
+                    }
+                    "desc", "descending" -> {
+                        criteriaBuilder.desc(path)
+                    }
+                    else -> throw IllegalArgumentException("Invalid Sort Direction ${sort.direction}")
+                }
+            }
+
+            query.orderBy(sortOrders)
             criteriaBuilder.and(*predicates.toTypedArray())
         }
     }
