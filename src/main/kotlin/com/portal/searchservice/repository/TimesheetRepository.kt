@@ -70,6 +70,7 @@ class CustomTimesheetRepository {
             if (filter.values.isNotEmpty()) {
                 when (filter.operator) {
                     IN -> {
+                        // TODO: VERIFIED
                         val inValueJoiner = StringJoiner(", ")
                         filter.values.forEach { inValueJoiner.add("""'$it'""") }
 
@@ -77,6 +78,7 @@ class CustomTimesheetRepository {
                     }
 
                     NOT_IN -> {
+                        // TODO: VERIFIED
                         val inValueJoiner = StringJoiner(", ")
                         filter.values.forEach { inValueJoiner.add("""'$it'""") }
 
@@ -87,7 +89,6 @@ class CustomTimesheetRepository {
                 }
             } else if (filter.value.isNotBlank()) {
                 // Value only
-
                 var value = if (filter.value.isNumber() || filter.value.isBoolean()) {
                     filter.value
                 } else {
@@ -96,10 +97,12 @@ class CustomTimesheetRepository {
 
                 when (filter.operator) {
                     EQUAL_TO -> {
+                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} = $value")
                     }
 
                     NOT_EQUAL_TO -> {
+                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} != $value")
                     }
 
@@ -135,22 +138,29 @@ class CustomTimesheetRepository {
                     }
 
                     CONTAINS -> {
+                        // TODO: VERIFIED
                         value = if (filter.value.isNumber() || filter.value.isBoolean()) {
                             filter.value
                         } else {
-                            """'%${filter.value}%'"""
+                            val words = filter.value.split(" ")
+                            val commaSeparatedWords = words.joinToString(separator = ", ") { word -> """'%$word%'""" }
+                            commaSeparatedWords
                         }
-                        filterJoiner.add("${filter.field} ILIKE $value")
+
+                        filterJoiner.add("${filter.field} ILIKE ANY(ARRAY[$value])")
                     }
 
                     NOT_CONTAINS -> {
-                        value = if (filter.value.isNumber() || filter.value.isBoolean()) {
-                            filter.value
+                        // TODO: VERIFIED
+                        val conditionals = if (filter.value.isNumber() || filter.value.isBoolean()) {
+                            """${filter.field} ILIKE '%${filter.value}%'"""
                         } else {
-                            """'%${filter.value}%'"""
+                            val words = filter.value.split(" ")
+                            words.joinToString(separator = " OR ") { word ->
+                                """${filter.field} ILIKE '%$word%'"""
+                            }
                         }
-
-                        filterJoiner.add("${filter.field} NOT ILIKE $value")
+                        filterJoiner.add("NOT ($conditionals)")
                     }
 
                     else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
