@@ -123,7 +123,13 @@ class ElasticSearchServiceImpl(
                     IN -> {
                         boolQuery.must {
                             it.terms { t ->
-                                t.field(filter.field).terms { t1 ->
+                                val refValue = filter.values.firstOrNull()
+                                val fieldName = if (refValue?.isString() == true) {
+                                    "${filter.field}.keyword"
+                                } else {
+                                    filter.field
+                                }
+                                t.field(fieldName).terms { t1 ->
                                     t1.value(filter.values.map { v -> FieldValue.of(v) })
                                 }
                             }

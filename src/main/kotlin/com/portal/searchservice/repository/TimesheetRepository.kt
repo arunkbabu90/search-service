@@ -12,7 +12,6 @@ import jakarta.persistence.criteria.Path
 import jakarta.persistence.criteria.Predicate
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import utils.*
@@ -28,10 +27,8 @@ interface TimesheetRepository : JpaRepository<Timesheet, Long>{
     fun findTimesheetsByUsernameUsingFunction(username: String): List<Map<String, Any>>
 }
 
-interface TimesheetRepository1 : JpaRepository<ArrayList<Map<String, Any>>, Long>, JpaSpecificationExecutor<ArrayList<Map<String, Any>>>
-
 @Repository
-class CustomTimesheetRepository(private val repository: TimesheetRepository1) {
+class CustomTimesheetRepository {
     @PersistenceContext
     private lateinit var entityManager: EntityManager
 
@@ -47,34 +44,151 @@ class CustomTimesheetRepository(private val repository: TimesheetRepository1) {
         val queryJoiner = StringJoiner(" ")
         queryJoiner.add("SELECT * FROM get_agg_timesheet()")
 
-//        val filterQuery = buildFiterQuery(configuration.filters)
-//        val sortOrderQuery = buildSortQuery(configuration.sorts)
+        val filterQuery = buildFilterQuery(configuration.filters)
+        val sortOrderQuery = buildSortQuery(configuration.sorts)
         val limitQuery = buildLimitQuery(configuration.limit)
 
-        val spec = buildQuery(configuration.filters, configuration.sorts)
-
-//        queryJoiner.add(filterQuery)
-//        queryJoiner.add(sortOrderQuery)
+        queryJoiner.add(filterQuery)
+        queryJoiner.add(sortOrderQuery)
         queryJoiner.add(limitQuery)
 
-//        val a = entityManager.createNativeQuery(queryJoiner.toString(), Map::class.java)
-//            .resultList as List<Map<String, Any>>
+        println("$queryJoiner")
 
-//        return a
-
-//        val timesheets = repository.findAll(spec)
-//        return timesheets.flatten()
-        return emptyList()
+        return entityManager.createNativeQuery(queryJoiner.toString(), Map::class.java)
+            .resultList as List<Map<String, Any>>
     }
 
     private fun buildLimitQuery(limit: Int) = if (limit > 0) "LIMIT $limit" else "LIMIT $DEFAULT_RESULT_LIMIT"
 
     private fun buildFilterQuery(filters: List<Filter>): String {
-        return ""
+        val mainJoiner = StringJoiner(" ")
+        val filterJoiner = StringJoiner(" AND ")
+
+        filters.forEach { filter: Filter ->
+            // Value(s) only
+
+            if (filter.values.isNotEmpty()) {
+                when (filter.operator) {
+                    IN -> {
+                        val inValueJoiner = StringJoiner(", ")
+                        filter.values.forEach { inValueJoiner.add("""'$it'""") }
+
+                        filterJoiner.add("${filter.field} IN (${inValueJoiner})")
+                    }
+
+                    NOT_IN -> {
+                        val inValueJoiner = StringJoiner(", ")
+                        filter.values.forEach { inValueJoiner.add("""'$it'""") }
+
+                        filterJoiner.add("${filter.field} NOT IN (${inValueJoiner})")
+                    }
+
+                    else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
+                }
+            } else if (filter.value.isNotBlank()) {
+                // Value only
+
+                var value = if (filter.value.isNumber() || filter.value.isBoolean()) {
+                    filter.value
+                } else {
+                    """'${filter.value}'"""
+                }
+
+                when (filter.operator) {
+                    EQUAL_TO -> {
+                        filterJoiner.add("${filter.field} = $value")
+                    }
+
+                    NOT_EQUAL_TO -> {
+                        filterJoiner.add("${filter.field} != $value")
+                    }
+
+                    BETWEEN -> {
+                        // Range Query. Both upper and lower bounds are Inclusive
+                        if (filter.highValue.isNotBlank()) {
+                            val highValue = if (filter.highValue.isNumber() || filter.highValue.isBoolean()) {
+                                filter.highValue
+                            } else {
+                                """'${filter.highValue}'"""
+                            }
+
+                            filterJoiner.add("${filter.field} BETWEEN $value AND $highValue")
+                        } else {
+                            throw BadRequestException("highValue is required")
+                        }
+                    }
+
+                    GREATER_THAN -> {
+                        filterJoiner.add("${filter.field} > $value")
+                    }
+
+                    GREATER_THAN_EQUAL_TO -> {
+                        filterJoiner.add("${filter.field} >= $value")
+                    }
+
+                    LESS_THAN -> {
+                        filterJoiner.add("${filter.field} < $value")
+                    }
+
+                    LESS_THAN_EQUAL_TO -> {
+                        filterJoiner.add("${filter.field} <= $value")
+                    }
+
+                    CONTAINS -> {
+                        value = if (filter.value.isNumber() || filter.value.isBoolean()) {
+                            filter.value
+                        } else {
+                            """'%${filter.value}%'"""
+                        }
+                        filterJoiner.add("${filter.field} ILIKE $value")
+                    }
+
+                    NOT_CONTAINS -> {
+                        value = if (filter.value.isNumber() || filter.value.isBoolean()) {
+                            filter.value
+                        } else {
+                            """'%${filter.value}%'"""
+                        }
+
+                        filterJoiner.add("${filter.field} NOT ILIKE $value")
+                    }
+
+                    else -> throw BadRequestException("Invalid Request. Please check the configuration and try again")
+                }
+
+            } else {
+                throw BadRequestException("Bad Request!")
+            }
+        }
+
+        mainJoiner.add("WHERE")
+        mainJoiner.add(filterJoiner.toString())
+
+        return mainJoiner.toString()
     }
 
+
     private fun buildSortQuery(sorts: List<Sort>): String {
-        return ""
+        val mainJoiner = StringJoiner(" ")
+        val sortJoiner = StringJoiner(", ")
+        sorts.forEach { sort ->
+            val (field, direction) = sort
+            when (direction.lowercase()) {
+                "asc", "ascending" -> {
+                    sortJoiner.add("$field ASC")
+                }
+                "desc", "descending" -> {
+                    sortJoiner.add("$field DESC")
+                }
+            }
+        }
+
+        if (sortJoiner.length() > 0) {
+            mainJoiner.add("ORDER BY")
+            mainJoiner.add(sortJoiner.toString())
+        }
+
+        return mainJoiner.toString()
     }
 
     private fun buildQuery(filters: List<Filter>, sorts: List<Sort>): Specification<Any> {

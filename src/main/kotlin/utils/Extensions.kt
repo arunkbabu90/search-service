@@ -8,6 +8,8 @@ import com.portal.searchservice.dto.TimesheetDto
 import com.portal.searchservice.mapper.ConfigurationMapper
 import com.portal.searchservice.mapper.TimesheetDocumentMapper
 import com.portal.searchservice.mapper.TimesheetMapper
+import java.time.Instant
+import java.time.format.DateTimeParseException
 import kotlin.reflect.full.memberProperties
 
 fun Timesheet.toDto() = TimesheetMapper.INSTANCE.toTimesheetDto(this)
@@ -35,13 +37,22 @@ fun String.isNumber(): Boolean {
     return this.toIntOrNull() != null || this.toDoubleOrNull() != null || this.toFloatOrNull() != null
             || this.toLongOrNull() != null || this.toBigDecimalOrNull() != null || this.toBigIntegerOrNull() != null
 }
-
 fun String.isNotNumber(): Boolean = !isNumber()
 
 fun String.isBoolean(): Boolean = this.equals("true", ignoreCase = true) || this.equals("false", ignoreCase = true)
 fun String.isNotBoolean(): Boolean = !isBoolean()
 
-fun String.isString(): Boolean = isNotBoolean() && isNotNumber()
+fun String.isDate(): Boolean {
+    try {
+        Instant.parse(this)
+        return true
+    } catch (e: DateTimeParseException) {
+        return false
+    }
+}
+fun String.isNotDate(): Boolean = !isDate()
+
+fun String.isString(): Boolean = isNotBoolean() && isNotNumber() && isNotDate()
 fun String.isNotString(): Boolean = !isString()
 
 fun String.toSortOrder(): SortOrder {
