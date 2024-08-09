@@ -107,6 +107,7 @@ class CustomTimesheetRepository {
                     }
 
                     BETWEEN -> {
+                        // TODO: VERIFIED
                         // Range Query. Both upper and lower bounds are Inclusive
                         if (filter.highValue.isNotBlank()) {
                             val highValue = if (filter.highValue.isNumber() || filter.highValue.isBoolean()) {
@@ -122,18 +123,22 @@ class CustomTimesheetRepository {
                     }
 
                     GREATER_THAN -> {
+                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} > $value")
                     }
 
                     GREATER_THAN_EQUAL_TO -> {
+                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} >= $value")
                     }
 
                     LESS_THAN -> {
+                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} < $value")
                     }
 
                     LESS_THAN_EQUAL_TO -> {
+                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} <= $value")
                     }
 

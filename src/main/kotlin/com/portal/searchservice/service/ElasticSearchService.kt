@@ -117,6 +117,8 @@ class ElasticSearchServiceImpl(
     private fun buildBoolQuery(filters: List<Filter>): BoolQuery {
         val boolQuery = QueryBuilders.bool()
 
+        // TODO: By default it's sorting by timesheet_id or id to be precise.
+        //  And it shouldn't sort by ID by default unless a filter is specified
         filters.forEach { filter ->
             if (filter.values.isNotEmpty()) {
                 when (filter.operator) {
