@@ -70,7 +70,6 @@ class CustomTimesheetRepository {
             if (filter.values.isNotEmpty()) {
                 when (filter.operator) {
                     IN -> {
-                        // TODO: VERIFIED
                         val inValueJoiner = StringJoiner(", ")
                         filter.values.forEach { inValueJoiner.add("""'$it'""") }
 
@@ -78,7 +77,6 @@ class CustomTimesheetRepository {
                     }
 
                     NOT_IN -> {
-                        // TODO: VERIFIED
                         val inValueJoiner = StringJoiner(", ")
                         filter.values.forEach { inValueJoiner.add("""'$it'""") }
 
@@ -97,17 +95,14 @@ class CustomTimesheetRepository {
 
                 when (filter.operator) {
                     EQUAL_TO -> {
-                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} = $value")
                     }
 
                     NOT_EQUAL_TO -> {
-                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} != $value")
                     }
 
                     BETWEEN -> {
-                        // TODO: VERIFIED
                         // Range Query. Both upper and lower bounds are Inclusive
                         if (filter.highValue.isNotBlank()) {
                             val highValue = if (filter.highValue.isNumber() || filter.highValue.isBoolean()) {
@@ -123,27 +118,22 @@ class CustomTimesheetRepository {
                     }
 
                     GREATER_THAN -> {
-                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} > $value")
                     }
 
                     GREATER_THAN_EQUAL_TO -> {
-                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} >= $value")
                     }
 
                     LESS_THAN -> {
-                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} < $value")
                     }
 
                     LESS_THAN_EQUAL_TO -> {
-                        // TODO: VERIFIED
                         filterJoiner.add("${filter.field} <= $value")
                     }
 
                     CONTAINS -> {
-                        // TODO: VERIFIED
                         value = if (filter.value.isNumber() || filter.value.isBoolean()) {
                             filter.value
                         } else {
@@ -156,7 +146,6 @@ class CustomTimesheetRepository {
                     }
 
                     NOT_CONTAINS -> {
-                        // TODO: VERIFIED
                         val conditionals = if (filter.value.isNumber() || filter.value.isBoolean()) {
                             """${filter.field} ILIKE '%${filter.value}%'"""
                         } else {

@@ -6,6 +6,7 @@ import co.elastic.clients.elasticsearch._types.SortOptions
 import co.elastic.clients.elasticsearch._types.mapping.Property
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders
+import co.elastic.clients.elasticsearch.core.SearchResponse
 import co.elastic.clients.elasticsearch.indices.GetMappingRequest
 import co.elastic.clients.json.JsonData
 import com.portal.searchservice.domain.Configuration
@@ -14,7 +15,6 @@ import com.portal.searchservice.dto.Filter
 import com.portal.searchservice.exception.BadRequestException
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
-import org.springframework.data.elasticsearch.client.elc.NativeQuery
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations
 import org.springframework.data.elasticsearch.core.query.Criteria
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery
@@ -79,17 +79,20 @@ class ElasticSearchServiceImpl(
         val sortOptions = buildSortOptions(sorts)
         val pageable = PageRequest.of(0, limit)
 
-        val nativeQuery = NativeQuery.builder()
-            .withQuery { q -> q.bool(boolQuery) }
-            .withPageable(pageable)
-            .withSort(sortOptions)
-            .build()
+        val searchResponse: SearchResponse<Map<*, *>> = client.search({ s ->
+            s.index("hrms-timesheet-detailed")
+                .query { it.bool(boolQuery) }
+                .from(pageable.pageNumber * pageable.pageSize)
+                .size(pageable.pageSize)
+                .sort(sortOptions)
+        }, Map::class.java)
 
-        val searchHits = operations.search(nativeQuery, TimesheetDocument::class.java)
-        return searchHits.mapNotNull { it.content }
-            .map { it.toMap() }
+        val hitsMeta = searchResponse.hits()
+        val totalHits = hitsMeta.total()?.value() ?: 0
+
+        return hitsMeta.hits().mapNotNull { it.source() as Map<String, Any> }
             .toMutableList().apply {
-                add(mapOf("total_hits" to searchHits.totalHits))
+                add(mapOf("total_hits" to totalHits))
             }
     }
 
