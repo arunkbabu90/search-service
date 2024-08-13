@@ -7,12 +7,14 @@ import com.portal.searchservice.exception.ResourceNotFoundException
 import com.portal.searchservice.repository.CustomTimesheetRepository
 import com.portal.searchservice.repository.TimesheetRepository
 import com.portal.searchservice.repository.UserRepository
+import org.apache.http.ConnectionClosedException
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations
 import org.springframework.data.elasticsearch.core.query.Criteria
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery
 import org.springframework.stereotype.Service
 import utils.toMap
+import java.net.ConnectException
 import java.time.Instant
 
 @Service
@@ -25,7 +27,19 @@ class TimesheetServiceImpl(
 ) : TimesheetService<Timesheet, TimesheetDocument> {
 
     override fun generateTimesheetReportWithConfig(configuration: Configuration): List<Map<String, Any>> {
-        return elasticSearchService.getTimesheetWithConfiguration(configuration)
+        // TODO: Check if the elastic search instance is online or reachable
+        //  if it's Offline then Fallback to fetching directly from DB
+        return try {
+            elasticSearchService.getTimesheetWithConfiguration(configuration)
+        } catch (e: ConnectException) {
+            // Elastic-search instance is OFFLINE. Fallback to Legacy search (aka. Fetch directly from DB)
+            println("Legacy DB Fallback Mode")
+            customTimesheetRepository.findTimesheetByConfiguration(configuration)
+        } catch (e1: ConnectionClosedException) {
+            // Elastic-search instance is UNREACHABLE. Fallback to Legacy search (aka. Fetch directly from DB)
+            println("Legacy DB Fallback Mode")
+            customTimesheetRepository.findTimesheetByConfiguration(configuration)
+        }
     }
 
     override fun generateTimesheetReport(

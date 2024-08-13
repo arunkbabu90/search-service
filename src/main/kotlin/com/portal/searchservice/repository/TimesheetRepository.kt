@@ -42,7 +42,9 @@ class CustomTimesheetRepository {
 
     fun findTimesheetByConfiguration(configuration: Configuration): List<Map<String, Any>> {
         val queryJoiner = StringJoiner(" ")
+        val totalHitsQueryJoiner = StringJoiner(" ")
         queryJoiner.add("SELECT * FROM get_agg_timesheet()")
+        totalHitsQueryJoiner.add("SELECT COUNT(*) FROM get_agg_timesheet()")
 
         val filterQuery = buildFilterQuery(configuration.filters)
         val sortOrderQuery = buildSortQuery(configuration.sorts)
@@ -52,10 +54,18 @@ class CustomTimesheetRepository {
         queryJoiner.add(sortOrderQuery)
         queryJoiner.add(limitQuery)
 
-        println("$queryJoiner")
+        totalHitsQueryJoiner.add(filterQuery)
+
+        println(queryJoiner)
+
+        val totalHits = entityManager.createNativeQuery(totalHitsQueryJoiner.toString(), Int::class.java)
+            .resultList.firstOrNull() ?: 0
 
         return entityManager.createNativeQuery(queryJoiner.toString(), Map::class.java)
-            .resultList as List<Map<String, Any>>
+            .resultList.mapNotNull { it as Map<String, Any> }
+            .toMutableList().apply {
+                add(mapOf(TOTAL_HITS_KEY to (totalHits as Int).toLong()))
+            }
     }
 
     private fun buildLimitQuery(limit: Int) = if (limit > 0) "LIMIT $limit" else "LIMIT $DEFAULT_RESULT_LIMIT"

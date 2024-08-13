@@ -92,7 +92,7 @@ class ElasticSearchServiceImpl(
 
         return hitsMeta.hits().mapNotNull { it.source() as Map<String, Any> }
             .toMutableList().apply {
-                add(mapOf("total_hits" to totalHits))
+                add(mapOf(TOTAL_HITS_KEY to totalHits))
             }
     }
 

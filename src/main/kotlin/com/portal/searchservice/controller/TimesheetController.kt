@@ -25,7 +25,9 @@ class TimesheetControllerImpl(
     override fun generateTimesheetReportWithConfig(@RequestBody body: ConfigurationDto): ResponseEntity<Any> {
         val configuration = body.toConfiguration()
         val generatedTimesheetReport = timesheetService.generateTimesheetReportWithConfig(configuration).toMutableList()
-        val totalHits = generatedTimesheetReport.find { it.containsKey("total_hits") }?.get("total_hits") as Long
+        val totalHitsMap: Map<String, Any>? = generatedTimesheetReport.find { it.containsKey("total_hits") }
+        val totalHits: Long = totalHitsMap?.let { it["total_hits"] as Long } ?: 0
+
         generatedTimesheetReport.removeIf { it.containsKey("total_hits") }
         val hits = generatedTimesheetReport.size
 

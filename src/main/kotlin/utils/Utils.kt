@@ -13,3 +13,5 @@ const val NOT_IN = "NOT_IN"
 const val IN = "IN"
 
 const val DEFAULT_RESULT_LIMIT = 1000
+
+const val TOTAL_HITS_KEY = "total_hits"
